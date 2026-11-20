@@ -123,6 +123,19 @@ func (q *QRCode) Dimension() int {
 	return q.mat.Width()
 }
 
+// Version returns the QR version (1-40) that was selected to encode the
+// content. It is 0 before encoding happened.
+func (q *QRCode) Version() int {
+	return q.v.Ver
+}
+
+// ErrorCorrectionLevel returns the error correction level the matrix was
+// encoded with. The returned value can be compared against the exported
+// ErrorCorrectionLow/Medium/Quart/Highest constants.
+func (q *QRCode) ErrorCorrectionLevel() ecLevel {
+	return q.v.ECLevel
+}
+
 // init fill QRCode instance from settings and sourceText.
 func (q *QRCode) init() (err error) {
 	// choose encode mode (num, alpha num, byte, Japanese)

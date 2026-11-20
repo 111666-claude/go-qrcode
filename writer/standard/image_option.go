@@ -87,8 +87,13 @@ func (oo *outputImageOptions) logoImage() image.Image {
 	return oo.logo
 }
 
+// _maxQRBlockWidth bounds the edge length (in pixels) of a single QR block.
+// Print exports (see print.go) legitimately need more than 255 dots per
+// module on high DPI devices, so the cap is a sanity bound, not uint8.
+const _maxQRBlockWidth = 4096
+
 func (oo *outputImageOptions) qrBlockWidth() int {
-	if oo == nil || (oo.qrWidth <= 0 || oo.qrWidth > 255) {
+	if oo == nil || (oo.qrWidth <= 0 || oo.qrWidth > _maxQRBlockWidth) {
 		return 20
 	}
 

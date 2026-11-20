@@ -89,3 +89,46 @@ func WithLogoSafeZone()
 
 - [How to customize QR Code shape](./how-to-use-custom-shape.md)
 - [How to customize ImageEncoder](./how-to-use-image-encoder.md)
+
+### Print specification export
+
+`PreparePrint` plans a QR code for a physical print job: give it the printed
+width in millimeters, the printer DPI, the minimum number of print dots each
+module must cover, and the quiet zone width. It selects the smallest QR
+version that holds the content and rejects the job when even that version
+cannot honor the minimum module size — modules always cover an integer number
+of print dots, so nothing on the grid is smaller than a printed dot.
+
+```go
+job, err := standard.PreparePrint("https://yeqown.xyz", standard.PrintSpec{
+	WidthMM:          40,  // physical edge including quiet zone
+	DPI:              300, // printer resolution
+	MinModuleDots:    2,   // each module covers at least 2x2 print dots
+	QuietZoneModules: 4,   // 0 selects the ISO/IEC 18004 default of 4
+}, qrcode.WithErrorCorrectionLevel(qrcode.ErrorCorrectionQuart))
+if err != nil {
+	// ErrPrintSpecInvalid (non-finite / non-positive spec),
+	// ErrPrintTooSmall (module would be smaller than MinModuleDots),
+	// ErrPrintTooLarge (output bigger than 16384 px per side),
+	// or an encoding error (content too long for version 40).
+}
+
+// PNG and SVG share the same module grid, quiet zone, logo and gradient.
+err = job.SavePNG("code.png", standard.WithLogoImageFilePNG("logo.png"))
+err = job.SaveSVG("code.svg", standard.WithFgGradient(gradient))
+
+// JSON report: version, EC level, dimension, dots per module, pixel size,
+// actual physical size, DPI, ...
+report, _ := json.Marshal(job.Report())
+```
+
+Notes:
+
+- The available pixel budget `WidthMM * DPI / 25.4` is always floored, so the
+  exported symbol never exceeds the ordered physical width; leftover pixels
+  stay unused (`AvailablePixels - PixelWidth` in the report).
+- The encoded content is never altered by print planning; logo, gradient,
+  colors and transparency behave exactly as in the standard writer. Module
+  shape is forced to rectangles so PNG and SVG grids are identical.
+- Halftone images are PNG-only; `WriteSVG` rejects them with
+  `ErrPrintSVGHalftone`.
